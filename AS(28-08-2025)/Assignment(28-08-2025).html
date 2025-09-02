@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Database Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd',
+                            400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8',
+                            800: '#1e40af', 900: '#1e3a8a'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <meta name="description" content="Tailwind CSS + TMDB Movie Explorer with search, filters, modals, and watchlist.">
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 selection:bg-primary-500 selection:text-white">
+    <header class="sticky top-0 z-30 backdrop-blur supports-[backdrop-filter]:bg-slate-900/70 bg-slate-900/90 border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-primary-600/20 border border-primary-400/30 grid place-items-center shadow-md shadow-primary-900/40">
+                    <span class="text-primary-300 font-black">TCS</span>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight">The Cine Stuff</h1>
+                    <p class="text-xs text-slate-400 hidden sm:block">Discover popular movies, search, filter, and build your watchlist</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="watchlistToggle" class="px-3 py-2 rounded-md text-sm font-medium border border-slate-700 bg-slate-800 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors">
+                    Watchlist
+                </button>
+                <a href="#docs" class="px-3 py-2 rounded-md text-sm font-medium border border-primary-700 bg-primary-600 hover:bg-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors">Docs</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- Search & Filters -->
+        <section aria-labelledby="filters-heading" class="mb-6">
+            <h2 id="filters-heading" class="sr-only">Search and Filters</h2>
+            <form id="searchForm" class="grid grid-cols-1 lg:grid-cols-12 gap-3">
+                <div class="lg:col-span-4">
+                    <label class="block text-sm text-slate-300 mb-1" for="query">Search</label>
+                    <div class="relative">
+                        <input id="query" name="query" type="search" placeholder="Search movies..." class="w-full rounded-md bg-slate-900 border border-slate-700 px-4 py-2 pr-10 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                        <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">⌕</span>
+                    </div>
+                </div>
+                <div class="lg:col-span-2">
+                    <label class="block text-sm text-slate-300 mb-1" for="genre">Genre</label>
+                    <select id="genre" name="genre" class="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"></select>
+                </div>
+                <div class="lg:col-span-2">
+                    <label class="block text-sm text-slate-300 mb-1" for="year">Year</label>
+                    <input id="year" name="year" type="number" min="1900" max="2100" placeholder="e.g. 2023" class="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                </div>
+                <div class="lg:col-span-2">
+                    <label class="block text-sm text-slate-300 mb-1" for="rating">Min Rating</label>
+                    <input id="rating" name="rating" type="number" min="0" max="10" step="0.5" placeholder="e.g. 7.5" class="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                </div>
+                <div class="lg:col-span-2">
+                    <label class="block text-sm text-slate-300 mb-1" for="sort">Sort</label>
+                    <select id="sort" name="sort" class="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                        <option value="popularity.desc">Popularity ↓</option>
+                        <option value="popularity.asc">Popularity ↑</option>
+                        <option value="vote_average.desc">Rating ↓</option>
+                        <option value="vote_average.asc">Rating ↑</option>
+                        <option value="primary_release_date.desc">Release Date ↓</option>
+                        <option value="primary_release_date.asc">Release Date ↑</option>
+                    </select>
+                </div>
+                <div class="lg:col-span-12 flex items-end gap-2">
+                    <button type="submit" class="px-4 py-2 rounded-md bg-primary-600 hover:bg-primary-500 border border-primary-700 text-white font-medium focus:outline-none focus:ring-2 focus:ring-primary-400 transition">Search</button>
+                    <button type="button" id="resetBtn" class="px-4 py-2 rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-medium focus:outline-none focus:ring-2 focus:ring-primary-400 transition">Reset</button>
+                    <span id="statusText" class="ml-auto text-sm text-slate-400"></span>
+                </div>
+            </form>
+        </section>
+
+        <!-- Loading Indicator -->
+        <div id="loading" class="hidden w-full py-10 flex items-center justify-center">
+            <div class="inline-flex items-center gap-3 text-slate-300">
+                <span class="h-5 w-5 border-2 border-slate-600 border-t-primary-500 rounded-full animate-spin"></span>
+                <span>Loading...</span>
+            </div>
+        </div>
+
+        <!-- Error Banner -->
+        <div id="errorBanner" class="hidden mb-4 rounded-md border border-rose-700 bg-rose-900/40 text-rose-200 px-4 py-3"></div>
+
+        <!-- Movies Grid / Watchlist -->
+        <section>
+            <div id="grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"></div>
+        </section>
+
+        <!-- Pagination -->
+        <nav class="mt-8 flex items-center justify-center gap-3">
+            <button id="prevPage" class="px-3 py-2 rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed">Prev</button>
+            <span id="pageInfo" class="text-sm text-slate-400"></span>
+            <button id="nextPage" class="px-3 py-2 rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
+        </nav>
+    </main>
+
+    <!-- Movie Modal -->
+    <div id="modal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/70" data-modal-close></div>
+        <div class="absolute inset-0 overflow-y-auto py-8">
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="relative rounded-xl bg-slate-900 border border-slate-700 shadow-2xl shadow-black/60">
+                    <button class="absolute top-3 right-3 px-2 py-1 rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700" data-modal-close>✕</button>
+                    <div id="modalContent" class="p-4 sm:p-6"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Docs / Tailwind Utility Coverage -->
+    <section id="docs" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <h2 class="text-lg font-semibold mb-3">Tailwind utility usage</h2>
+        <ul class="list-disc list-inside text-slate-300 space-y-1 text-sm">
+            <li><span class="font-medium">Layout</span>: grid, flex, positioning, sticky header</li>
+            <li><span class="font-medium">Typography</span>: headings, small text, colors</li>
+            <li><span class="font-medium">Visual</span>: colors, borders, shadows, backgrounds</li>
+            <li><span class="font-medium">Responsive</span>: grid columns by breakpoints</li>
+            <li><span class="font-medium">Interactive</span>: hover, focus, transitions, disabled</li>
+            <li><span class="font-medium">Spacing</span>: padding, margin, gap utilities</li>
+            <li><span class="font-medium">Animations</span>: loading spinner with animate-spin</li>
+        </ul>
+    </section>
+
+    <script src="./movie-app.js" defer></script>
+</body>
+</html>
+
